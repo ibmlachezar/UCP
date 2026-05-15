@@ -26,9 +26,9 @@ After UCP: one standard. Any agent, any merchant. Like HTTP for commerce.
 | [01](day-01/README.md) | `/.well-known/ucp` discovery endpoint | How agents find merchants without registration | ✅ |
 | [02](day-02/README.md) | Capability negotiation engine | How both sides agree on what features are active | ✅ |
 | [03](day-03/README.md) | `POST /checkout-sessions` | How an agent starts a purchase | ✅ |
-| 04 | `PATCH /checkout-sessions/:id` | How agents fill in shipping + buyer info | 🔜 |
-| 05 | Fulfillment extension | How shipping options work in UCP | — |
-| 06 | `POST /complete` — take payment | The Trust Triangle and payment tokens | — |
+| [04](day-04/README.md) | `PATCH /checkout-sessions/:id` | How agents fill in shipping + buyer info | ✅ |
+| [05](day-05/README.md) | Fulfillment extension | How shipping options work in UCP | ✅ |
+| 06 | `POST /complete` — take payment | The Trust Triangle and payment tokens | 🔜 |
 | 07 | End-to-end test suite | Spec compliance testing | — |
 | 08 | Discount extension | Multi-parent extensions | — |
 | 09 | Catalog search | Product discovery before purchase | — |
