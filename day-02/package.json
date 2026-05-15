@@ -1,0 +1,13 @@
+{
+  "name": "ucp-merchant-day-02",
+  "version": "1.0.0",
+  "description": "Day 2: Capability negotiation engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/negotiation.test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0"
+  }
+}
