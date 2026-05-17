@@ -32,7 +32,8 @@ After UCP: one standard. Any agent, any merchant. Like HTTP for commerce.
 | [07](day-07/README.md) | End-to-end test suite | Spec compliance testing | ✅ |
 | [08](day-08/README.md) | Discount extension | Multi-parent extensions | ✅ |
 | [09](day-09/README.md) | Catalog search | Product discovery before purchase | ✅ |
-| 10 | OAuth identity linking | Personalisation and loyalty groundwork | 🔜 |
+| [10](day-10/README.md) | OAuth identity linking | Personalisation and loyalty groundwork | ✅ |
+| 11 | Order webhooks | Real-time post-purchase updates | 🔜 |
 | 10 | OAuth identity linking | Personalisation and loyalty groundwork | — |
 | 11 | Order webhooks | Real-time post-purchase updates | — |
 | 12 | HTTP Message Signatures | Cryptographic webhook verification | — |
