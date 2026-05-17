@@ -28,10 +28,11 @@ After UCP: one standard. Any agent, any merchant. Like HTTP for commerce.
 | [03](day-03/README.md) | `POST /checkout-sessions` | How an agent starts a purchase | ✅ |
 | [04](day-04/README.md) | `PATCH /checkout-sessions/:id` | How agents fill in shipping + buyer info | ✅ |
 | [05](day-05/README.md) | Fulfillment extension | How shipping options work in UCP | ✅ |
-| 06 | `POST /complete` — take payment | The Trust Triangle and payment tokens | 🔜 |
-| 07 | End-to-end test suite | Spec compliance testing | — |
-| 08 | Discount extension | Multi-parent extensions | — |
-| 09 | Catalog search | Product discovery before purchase | — |
+| [06](day-06/README.md) | `POST /complete` — take payment | The Trust Triangle and payment tokens | ✅ |
+| [07](day-07/README.md) | End-to-end test suite | Spec compliance testing | ✅ |
+| [08](day-08/README.md) | Discount extension | Multi-parent extensions | ✅ |
+| [09](day-09/README.md) | Catalog search | Product discovery before purchase | ✅ |
+| 10 | OAuth identity linking | Personalisation and loyalty groundwork | 🔜 |
 | 10 | OAuth identity linking | Personalisation and loyalty groundwork | — |
 | 11 | Order webhooks | Real-time post-purchase updates | — |
 | 12 | HTTP Message Signatures | Cryptographic webhook verification | — |
