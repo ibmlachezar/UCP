@@ -2,7 +2,7 @@
 
 Learning the [Universal Commerce Protocol](https://ucp.dev) by building something real every day. One feature per day. Every day's code works standalone. By Day 30 this is a fully working, tested, UCP-compliant merchant server.
 
-**Goal:** Join Partha Sundaram's team at Google working on UCP and agentic commerce.
+**Goal:** Become a UCP expert by building a real merchant server from scratch.
 
 ---
 
@@ -33,7 +33,8 @@ After UCP: one standard. Any agent, any merchant. Like HTTP for commerce.
 | [08](day-08/README.md) | Discount extension | Multi-parent extensions | ✅ |
 | [09](day-09/README.md) | Catalog search | Product discovery before purchase | ✅ |
 | [10](day-10/README.md) | OAuth identity linking | Personalisation and loyalty groundwork | ✅ |
-| 11 | Order webhooks | Real-time post-purchase updates | 🔜 |
+| [11](day-11/README.md) | Order webhooks | Real-time post-purchase updates | ✅ |
+| 12 | HTTP Message Signatures | Cryptographic webhook verification | 🔜 |
 | 10 | OAuth identity linking | Personalisation and loyalty groundwork | — |
 | 11 | Order webhooks | Real-time post-purchase updates | — |
 | 12 | HTTP Message Signatures | Cryptographic webhook verification | — |
@@ -45,7 +46,7 @@ After UCP: one standard. Any agent, any merchant. Like HTTP for commerce.
 | ... | | | |
 | 60 | Working autonomous shopping agent | AI agent that buys things end-to-end | — |
 | ... | | | |
-| 90 | Portfolio complete + outreach sent | Ready for Partha's team | — |
+| 90 | Portfolio complete | Full UCP merchant server with conformance suite | — |
 
 ---
 
@@ -75,8 +76,3 @@ Each day has:
 
 ## Why this project
 
-Partha Sundaram (Group PM, Google Shopping) described UCP as a "Nano Banana moment" — the first time you see an AI agent complete a real purchase end-to-end, you immediately understand why it matters. This project is my attempt to build toward that moment, one feature at a time, understanding every layer of the protocol by implementing it.
-
----
-
-*Building in public. Feedback welcome. PRs open.*
