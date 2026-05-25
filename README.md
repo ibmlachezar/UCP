@@ -34,7 +34,8 @@ After UCP: one standard. Any agent, any merchant. Like HTTP for commerce.
 | [09](day-09/README.md) | Catalog search | Product discovery before purchase | ✅ |
 | [10](day-10/README.md) | OAuth identity linking | Personalisation and loyalty groundwork | ✅ |
 | [11](day-11/README.md) | Order webhooks | Real-time post-purchase updates | ✅ |
-| 12 | HTTP Message Signatures | Cryptographic webhook verification | 🔜 |
+| [12](day-12/README.md) | HTTP Message Signatures | Cryptographic webhook verification | ✅ |
+| 13 | UCP health check CLI | Diagnose any merchant domain | 🔜 |
 | 10 | OAuth identity linking | Personalisation and loyalty groundwork | — |
 | 11 | Order webhooks | Real-time post-purchase updates | — |
 | 12 | HTTP Message Signatures | Cryptographic webhook verification | — |
