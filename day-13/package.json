@@ -1,0 +1,1 @@
+{"name":"ucp-merchant-day-13","version":"1.0.0","scripts":{"start":"node server.js","check":"node ucp-check.js localhost:3000"},"dependencies":{"express":"^4.18.0"}}
