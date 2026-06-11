@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UCP Profile Generator</title>
+<style>
+:root {
+  --blue: #1d4ed8; --blue-bg: #eff6ff; --blue-border: #bfdbfe; --blue-light: #60a5fa;
+  --green: #16a34a; --green-bg: #f0fdf4; --green-border: #bbf7d0;
+  --amber: #b45309; --amber-bg: #fffbeb; --amber-border: #fde68a;
+  --red: #dc2626; --red-bg: #fef2f2; --red-border: #fecaca;
+  --gray: #6b7280; --gray-bg: #f9fafb; --gray-border: #e5e7eb;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'SF Mono', 'Fira Code', monospace;
+  --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: #f8fafc; color: #111; min-height: 100vh; }
+
+/* LAYOUT */
+.shell { display: grid; grid-template-columns: 1fr 420px; min-height: 100vh; }
+@media(max-width:900px){ .shell { grid-template-columns: 1fr; } .preview-panel { display: none; } }
+
+/* LEFT PANEL - FORM */
+.form-panel { padding: 32px; overflow-y: auto; max-height: 100vh; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.brand-icon { width: 34px; height: 34px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; }
+.brand-name { font-size: 15px; font-weight: 700; color: #111; }
+.brand-sub { font-size: 11px; color: var(--gray); }
+
+.step { background: #fff; border: 1px solid var(--gray-border); border-radius: var(--radius); padding: 22px; margin-bottom: 14px; transition: border-color .2s; }
+.step.active { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
+.step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; cursor: pointer; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue-bg); color: var(--blue); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-num.done { background: var(--green-bg); color: var(--green); }
+.step-title { font-size: 14px; font-weight: 600; }
+.step-sub { font-size: 11px; color: var(--gray); margin-top: 1px; }
+.step-body { display: block; }
+
+/* FORM ELEMENTS */
+.field-row { margin-bottom: 14px; }
+.field-row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+label { display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+label .req { color: var(--red); }
+label .opt { color: var(--gray); font-weight: 400; }
+input, select, textarea { width: 100%; border: 1px solid var(--gray-border); border-radius: 7px; padding: 8px 11px; font-size: 13px; font-family: var(--font); color: #111; background: #fff; transition: border-color .15s, box-shadow .15s; outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
+textarea { resize: vertical; min-height: 72px; }
+.hint { font-size: 11px; color: var(--gray); margin-top: 4px; line-height: 1.5; }
+
+/* CAPABILITY TOGGLES */
+.cap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cap-toggle { border: 1px solid var(--gray-border); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all .15s; display: flex; gap: 8px; align-items: flex-start; }
+.cap-toggle:hover { border-color: var(--blue-border); background: var(--blue-bg); }
+.cap-toggle.on { border-color: var(--blue); background: var(--blue-bg); }
+.cap-checkbox { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--gray-border); flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.cap-toggle.on .cap-checkbox { background: var(--blue); border-color: var(--blue); }
+.cap-toggle.on .cap-checkbox::after { content: '✓'; color: #fff; font-size: 10px; font-weight: 700; }
+.cap-icon { font-size: 16px; }
+.cap-label { font-size: 12px; font-weight: 600; color: #111; margin-bottom: 1px; }
+.cap-desc { font-size: 10px; color: var(--gray); line-height: 1.4; }
+.cap-required { font-size: 9px; color: var(--red); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+/* PAYMENT HANDLER */
+.handler-row { border: 1px solid var(--gray-border); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.handler-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.handler-name { font-size: 13px; font-weight: 600; }
+.handler-toggle { width: 36px; height: 20px; border-radius: 99px; background: var(--gray-border); cursor: pointer; position: relative; transition: background .15s; flex-shrink: 0; }
+.handler-toggle.on { background: var(--blue); }
+.handler-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.handler-toggle.on::after { transform: translateX(16px); }
+
+/* GENERATE BUTTON */
+.generate-btn { width: 100%; padding: 13px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: background .15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.generate-btn:hover { background: #1e40af; }
+.generate-btn:active { transform: translateY(1px); }
+
+/* VALIDATION */
+.validation-msg { font-size: 12px; padding: 8px 11px; border-radius: 6px; margin-top: 8px; }
+.vm-error { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.vm-success { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+
+/* RIGHT PANEL - PREVIEW */
+.preview-panel { background: #0f172a; color: #e2e8f0; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.preview-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.1); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.preview-title { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .07em; }
+.preview-actions { display: flex; gap: 8px; }
+.preview-btn { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+.btn-copy { background: rgba(255,255,255,.1); color: #e2e8f0; }
+.btn-copy:hover { background: rgba(255,255,255,.18); }
+.btn-download { background: var(--blue); color: #fff; }
+.btn-download:hover { background: #1e40af; }
+.preview-code { flex: 1; overflow-y: auto; padding: 20px; font-family: var(--mono); font-size: 11px; line-height: 1.8; white-space: pre-wrap; word-break: break-all; }
+
+/* SYNTAX HIGHLIGHT */
+.json-key { color: #60a5fa; }
+.json-str { color: #86efac; }
+.json-num { color: #fbbf24; }
+.json-bool { color: #f472b6; }
+.json-null { color: #94a3b8; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 999; opacity: 0; transform: translateY(10px); transition: all .2s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* SCORE BADGE */
+.score-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+.score-0 { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.score-50 { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.score-100 { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- FORM PANEL -->
+  <div class="form-panel">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">UCP Profile Generator</div>
+        <div class="brand-sub">Generate a valid merchant.json in minutes</div>
+      </div>
+    </div>
+
+    <div id="score-area"></div>
+
+    <!-- STEP 1: Basics -->
+    <div class="step active" id="step1">
+      <div class="step-header" onclick="toggleStep(1)">
+        <div class="step-num" id="snum1">1</div>
+        <div>
+          <div class="step-title">🏪 Merchant basics</div>
+          <div class="step-sub">Your store name, domain and API endpoint</div>
+        </div>
+      </div>
+      <div class="step-body" id="sbody1">
+        <div class="field-row">
+          <label>Merchant name <span class="req">*</span></label>
+          <input type="text" id="merchant_name" placeholder="e.g. Acme Sports Store" oninput="update()">
+        </div>
+        <div class="field-row">
+          <label>Domain <span class="req">*</span></label>
+          <input type="text" id="merchant_domain" placeholder="e.g. acmesports.com" oninput="update()">
+          <div class="hint">Your root domain — without https://</div>
+        </div>
+        <div class="field-row">
+          <label>API endpoint <span class="req">*</span></label>
+          <input type="text" id="api_endpoint" placeholder="e.g. https://api.acmesports.com/ucp/v1" oninput="update()">
+          <div class="hint">Where agents send checkout requests. Usually your domain + /ucp/v1</div>
+        </div>
+        <div class="field-row two">
+          <div>
+            <label>UCP version <span class="req">*</span></label>
+            <select id="ucp_version" onchange="update()">
+              <option value="2026-04-08">2026-04-08 (latest)</option>
+              <option value="2026-01-01">2026-01-01</option>
+            </select>
+          </div>
+          <div>
+            <label>Merchant ID <span class="opt">(optional)</span></label>
+            <input type="text" id="merchant_id" placeholder="e.g. merchant-001" oninput="update()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Capabilities -->
+    <div class="step" id="step2">
+      <div class="step-header" onclick="toggleStep(2)">
+        <div class="step-num" id="snum2">2</div>
+        <div>
+          <div class="step-title">⚙️ Capabilities</div>
+          <div class="step-sub">What can AI agents do with your store?</div>
+        </div>
+      </div>
+      <div class="step-body" id="sbody2">
+        <div class="cap-grid">
+          <div class="cap-toggle on" id="cap_checkout" onclick="toggleCap('checkout')">
+            <div class="cap-checkbox"></div>
+            <div>
+              <div class="cap-icon">🧾</div>
+              <div class="cap-label">Checkout</div>
+              <div class="cap-desc">Agents can create and complete purchases</div>
+              <div class="cap-required">Required</div>
+            </div>
+          </div>
+          <div class="cap-toggle on" id="cap_fulfillment" onclick="toggleCap('fulfillment')">
+            <div class="cap-checkbox"></div>
+            <div>
+              <div class="cap-icon">📦</div>
+              <div class="cap-label">Fulfillment</div>
+              <div class="cap-desc">Shipping addresses and delivery options</div>
+            </div>
+          </div>
+          <div class="cap-toggle on" id="cap_discount" onclick="toggleCap('discount')">
+            <div class="cap-checkbox"></div>
+            <div>
+              <div class="cap-icon">🎟️</div>
+              <div class="cap-label">Discount</div>
+              <div class="cap-desc">Coupon codes and promotional pricing</div>
+            </div>
+          </div>
+          <div class="cap-toggle on" id="cap_catalog" onclick="toggleCap('catalog')">
+            <div class="cap-checkbox"></div>
+            <div>
+              <div class="cap-icon">📖</div>
+              <div class="cap-label">Catalog search</div>
+              <div class="cap-desc">Agents can browse your products</div>
+            </div>
+          </div>
+          <div class="cap-toggle" id="cap_identity" onclick="toggleCap('identity')">
+            <div class="cap-checkbox"></div>
+            <div>
+              <div class="cap-icon">🪪</div>
+              <div class="cap-label">Identity linking</div>
+              <div class="cap-desc">Connect user accounts for personalisation</div>
+            </div>
+          </div>
+          <div class="cap-toggle" id="cap_cart" onclick="toggleCap('cart')">
+            <div class="cap-checkbox"></div>
+            <div>
+              <div class="cap-icon">🛒</div>
+              <div class="cap-label">Cart</div>
+              <div class="cap-desc">Multi-item shopping cart support</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Payment handlers -->
+    <div class="step" id="step3">
+      <div class="step-header" onclick="toggleStep(3)">
+        <div class="step-num" id="snum3">3</div>
+        <div>
+          <div class="step-title">💳 Payment handlers</div>
+          <div class="step-sub">Which payment methods do you accept?</div>
+        </div>
+      </div>
+      <div class="step-body" id="sbody3">
+        <div id="handler_gpay" class="handler-row">
+          <div class="handler-header">
+            <div class="handler-name">🔵 Google Pay</div>
+            <div class="handler-toggle on" id="htog_gpay" onclick="toggleHandler('gpay')"></div>
+          </div>
+          <div id="hbody_gpay">
+            <div class="field-row two">
+              <div>
+                <label>Handler ID</label>
+                <input type="text" id="gpay_id" value="gpay_handler_1" oninput="update()">
+              </div>
+              <div>
+                <label>Environment</label>
+                <select id="gpay_env" onchange="update()">
+                  <option value="TEST">TEST</option>
+                  <option value="PRODUCTION">PRODUCTION</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <label>Google Merchant ID</label>
+              <input type="text" id="gpay_merchant_id" placeholder="e.g. BCR2DN4T..." oninput="update()">
+            </div>
+          </div>
+        </div>
+
+        <div id="handler_applepay" class="handler-row">
+          <div class="handler-header">
+            <div class="handler-name">🍎 Apple Pay</div>
+            <div class="handler-toggle" id="htog_applepay" onclick="toggleHandler('applepay')"></div>
+          </div>
+          <div id="hbody_applepay" style="display:none">
+            <div class="field-row two">
+              <div>
+                <label>Handler ID</label>
+                <input type="text" id="applepay_id" value="applepay_handler_1" oninput="update()">
+              </div>
+              <div>
+                <label>Merchant Identifier</label>
+                <input type="text" id="applepay_merchant" placeholder="merchant.com.example" oninput="update()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="handler_stripe" class="handler-row">
+          <div class="handler-header">
+            <div class="handler-name">💜 Stripe</div>
+            <div class="handler-toggle" id="htog_stripe" onclick="toggleHandler('stripe')"></div>
+          </div>
+          <div id="hbody_stripe" style="display:none">
+            <div class="field-row two">
+              <div>
+                <label>Handler ID</label>
+                <input type="text" id="stripe_id" value="stripe_handler_1" oninput="update()">
+              </div>
+              <div>
+                <label>Publishable Key</label>
+                <input type="text" id="stripe_pk" placeholder="pk_test_..." oninput="update()">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Security -->
+    <div class="step" id="step4">
+      <div class="step-header" onclick="toggleStep(4)">
+        <div class="step-num" id="snum4">4</div>
+        <div>
+          <div class="step-title">🔐 Security — signing keys</div>
+          <div class="step-sub">For agents to verify your webhook signatures</div>
+        </div>
+      </div>
+      <div class="step-body" id="sbody4">
+        <div class="field-row">
+          <label>Key ID (kid) <span class="req">*</span></label>
+          <input type="text" id="key_kid" placeholder="e.g. key-2026-01" oninput="update()">
+          <div class="hint">A unique identifier for this key. Used when you rotate keys — agents use kid to find the right one.</div>
+        </div>
+        <div class="field-row">
+          <label>Public key (JWK x coordinate) <span class="opt">(optional — leave blank for placeholder)</span></label>
+          <input type="text" id="key_x" placeholder="Base64url x coordinate from your keypair" oninput="update()">
+        </div>
+        <div class="field-row">
+          <label>Public key (JWK y coordinate) <span class="opt">(optional)</span></label>
+          <input type="text" id="key_y" placeholder="Base64url y coordinate from your keypair" oninput="update()">
+        </div>
+        <div style="background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--amber);line-height:1.6">
+          ⚠️ <strong>Never put your private key here.</strong> Only the public key (x and y coordinates) goes in the profile. The profile is public — anyone can read it. Generate your keypair separately and only paste the public coordinates.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: Cache -->
+    <div class="step" id="step5">
+      <div class="step-header" onclick="toggleStep(5)">
+        <div class="step-num" id="snum5">5</div>
+        <div>
+          <div class="step-title">⚡ Caching</div>
+          <div class="step-sub">How long should agents cache your profile?</div>
+        </div>
+      </div>
+      <div class="step-body" id="sbody5">
+        <div class="field-row">
+          <label>Cache max-age (seconds)</label>
+          <select id="cache_maxage" onchange="update()">
+            <option value="60">60 seconds (minimum — spec requirement)</option>
+            <option value="300" selected>300 seconds (5 minutes — recommended)</option>
+            <option value="3600">3600 seconds (1 hour)</option>
+            <option value="86400">86400 seconds (24 hours)</option>
+          </select>
+          <div class="hint">Spec minimum is 60 seconds. Higher values mean fewer fetches — better for performance. Lower values mean faster profile updates — better during active development.</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="generate-btn" onclick="downloadProfile()">
+      <span>⬇️</span> Download merchant.json
+    </button>
+    <div id="validation-area"></div>
+    <p style="font-size:11px;color:var(--gray);margin-top:12px;text-align:center">Built as part of the <a href="https://github.com/ibmlachezar/UCP" style="color:var(--blue)">UCP 90-day build</a></p>
+  </div>
+
+  <!-- PREVIEW PANEL -->
+  <div class="preview-panel">
+    <div class="preview-header">
+      <div class="preview-title">Live preview — merchant.json</div>
+      <div class="preview-actions">
+        <button class="preview-btn btn-copy" onclick="copyJson()">Copy</button>
+        <button class="preview-btn btn-download" onclick="downloadProfile()">Download</button>
+      </div>
+    </div>
+    <div class="preview-code" id="preview-code"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────
+var caps = { checkout:true, fulfillment:true, discount:true, catalog:true, identity:false, cart:false };
+var handlers = { gpay:true, applepay:false, stripe:false };
+
+// ── Generate profile JSON ─────────────────────────────────
+function buildProfile() {
+  var name     = v('merchant_name') || 'My Store';
+  var domain   = v('merchant_domain') || 'example.com';
+  var endpoint = v('api_endpoint') || ('https://' + domain + '/ucp/v1');
+  var ver      = v('ucp_version') || '2026-04-08';
+  var mid      = v('merchant_id') || (domain.replace(/\./g,'-') + '-01');
+  var kid      = v('key_kid') || 'key-1';
+  var keyX     = v('key_x') || 'REPLACE_WITH_YOUR_PUBLIC_KEY_X_COORDINATE';
+  var keyY     = v('key_y') || 'REPLACE_WITH_YOUR_PUBLIC_KEY_Y_COORDINATE';
+  var maxage   = v('cache_maxage') || '300';
+
+  // Build capabilities
+  var capObj = {};
+  if (caps.checkout) {
+    capObj['dev.ucp.shopping.checkout'] = [{ version: ver, spec: 'https://ucp.dev/latest/specification/checkout/', schema: 'https://ucp.dev/'+ver+'/schemas/shopping/checkout.json' }];
+  }
+  if (caps.cart) {
+    capObj['dev.ucp.shopping.cart'] = [{ version: ver, spec: 'https://ucp.dev/latest/specification/cart/', extends: 'dev.ucp.shopping.checkout' }];
+  }
+  if (caps.fulfillment) {
+    capObj['dev.ucp.shopping.fulfillment'] = [{ version: ver, spec: 'https://ucp.dev/latest/specification/fulfillment/', schema: 'https://ucp.dev/'+ver+'/schemas/shopping/fulfillment.json', extends: 'dev.ucp.shopping.checkout' }];
+  }
+  if (caps.discount) {
+    capObj['dev.ucp.shopping.discount'] = [{ version: ver, spec: 'https://ucp.dev/latest/specification/discount/', schema: 'https://ucp.dev/'+ver+'/schemas/shopping/discount.json', extends: ['dev.ucp.shopping.checkout', 'dev.ucp.shopping.cart'] }];
+  }
+  if (caps.catalog) {
+    capObj['dev.ucp.shopping.catalog'] = [{ version: ver, spec: 'https://ucp.dev/latest/specification/catalog/', schema: 'https://ucp.dev/'+ver+'/schemas/shopping/catalog.json' }];
+  }
+  if (caps.identity) {
+    capObj['dev.ucp.shopping.identity_linking'] = [{ version: ver, spec: 'https://ucp.dev/latest/specification/identity-linking/', schema: 'https://ucp.dev/'+ver+'/schemas/shopping/identity-linking.json' }];
+  }
+
+  // Build payment handlers
+  var handlerObj = {};
+  if (handlers.gpay) {
+    var gpayId  = v('gpay_id') || 'gpay_handler_1';
+    var gpayEnv = v('gpay_env') || 'TEST';
+    var gpayMid = v('gpay_merchant_id') || mid;
+    handlerObj['com.google.pay'] = [{ id: gpayId, version: ver, spec: 'https://developers.google.com/merchant/ucp/guides/gpay-payment-handler', available_instruments: [{ type: 'card', constraints: { brands: ['visa','mastercard','amex'] } }], config: { environment: gpayEnv, merchant_info: { merchant_name: name, merchant_id: gpayMid } } }];
+  }
+  if (handlers.applepay) {
+    var apId = v('applepay_id') || 'applepay_handler_1';
+    var apMid = v('applepay_merchant') || ('merchant.com.' + domain.split('.')[0]);
+    handlerObj['com.apple.pay'] = [{ id: apId, version: ver, spec: 'https://developer.apple.com/documentation/passkit/apple_pay', available_instruments: [{ type: 'card', constraints: { brands: ['visa','mastercard','amex'] } }], config: { merchant_identifier: apMid, merchant_name: name } }];
+  }
+  if (handlers.stripe) {
+    var strId = v('stripe_id') || 'stripe_handler_1';
+    var strPk = v('stripe_pk') || 'pk_test_YOUR_PUBLISHABLE_KEY';
+    handlerObj['com.stripe'] = [{ id: strId, version: ver, spec: 'https://stripe.com/docs/payments', available_instruments: [{ type: 'card', constraints: { brands: ['visa','mastercard','amex'] } }], config: { publishable_key: strPk, merchant_name: name } }];
+  }
+
+  return {
+    ucp: {
+      version: ver,
+      services: { 'dev.ucp.shopping': [{ version: ver, spec: 'https://ucp.dev/latest/specification/overview/', schema: 'https://ucp.dev/'+ver+'/services/shopping/rest.openapi.json', transport: 'rest', endpoint: endpoint }] },
+      capabilities: capObj,
+      payment_handlers: handlerObj
+    },
+    signing_keys: [{ kid: kid, kty: 'EC', crv: 'P-256', alg: 'ES256', use: 'sig', x: keyX, y: keyY }],
+    '_cache_control': 'public, max-age=' + maxage,
+    '_comment': 'Generated by UCP Profile Generator — github.com/ibmlachezar/UCP'
+  };
+}
+
+// ── Syntax highlight ──────────────────────────────────────
+function highlight(json) {
+  return json
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+      var cls = 'json-num';
+      if (/^"/.test(match)) { cls = /:$/.test(match) ? 'json-key' : 'json-str'; }
+      else if (/true|false/.test(match)) cls = 'json-bool';
+      else if (/null/.test(match)) cls = 'json-null';
+      return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+
+// ── Update preview ────────────────────────────────────────
+function update() {
+  var profile = buildProfile();
+  var json = JSON.stringify(profile, null, 2);
+  document.getElementById('preview-code').innerHTML = highlight(json);
+  updateScore(profile);
+}
+
+function updateScore(profile) {
+  var score = 0;
+  var max = 0;
+  var issues = [];
+
+  max++; if (v('merchant_name')) score++; else issues.push('Add merchant name');
+  max++; if (v('merchant_domain')) score++; else issues.push('Add your domain');
+  max++; if (v('api_endpoint')) score++; else issues.push('Add API endpoint');
+  max++; if (caps.checkout) score++; else issues.push('Checkout capability is required');
+  max++; if (Object.keys(profile.ucp.payment_handlers).length > 0) score++; else issues.push('Add at least one payment handler');
+  max++; if (v('key_kid')) score++; else issues.push('Add a signing key ID');
+
+  var pct = Math.round(score / max * 100);
+  var cls = pct === 100 ? 'score-100' : pct >= 50 ? 'score-50' : 'score-0';
+  var icon = pct === 100 ? '✅' : pct >= 50 ? '⚠️' : '❌';
+  var label = pct === 100 ? 'Fully valid profile' : pct >= 50 ? 'Almost there' : 'Missing required fields';
+
+  var html = '<div class="score-badge ' + cls + '">' + icon + ' ' + label + ' — ' + pct + '% complete</div>';
+  if (issues.length > 0) {
+    html += '<div style="font-size:11px;color:var(--red);margin-bottom:12px;line-height:1.8">' + issues.map(function(i){ return '→ ' + i; }).join('<br>') + '</div>';
+  }
+  document.getElementById('score-area').innerHTML = html;
+}
+
+// ── Download ──────────────────────────────────────────────
+function downloadProfile() {
+  var issues = [];
+  if (!v('merchant_name')) issues.push('Merchant name is required');
+  if (!v('merchant_domain')) issues.push('Domain is required');
+  if (!v('api_endpoint')) issues.push('API endpoint is required');
+  if (!caps.checkout) issues.push('Checkout capability is required');
+
+  var area = document.getElementById('validation-area');
+  if (issues.length > 0) {
+    area.innerHTML = '<div class="validation-msg vm-error">⚠️ ' + issues.join(' · ') + '</div>';
+    return;
+  }
+  area.innerHTML = '<div class="validation-msg vm-success">✅ Profile is valid — downloading...</div>';
+  setTimeout(function(){ area.innerHTML = ''; }, 3000);
+
+  var profile = buildProfile();
+  // Remove internal helper keys before download
+  delete profile['_cache_control'];
+  delete profile['_comment'];
+
+  var blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'merchant.json';
+  a.click();
+  toast('merchant.json downloaded!');
+}
+
+function copyJson() {
+  var profile = buildProfile();
+  delete profile['_cache_control'];
+  delete profile['_comment'];
+  navigator.clipboard.writeText(JSON.stringify(profile, null, 2)).then(function() {
+    toast('Copied to clipboard!');
+  });
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+function v(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+// ── Toggles ───────────────────────────────────────────────
+function toggleCap(name) {
+  if (name === 'checkout') return; // required
+  caps[name] = !caps[name];
+  document.getElementById('cap_' + name).classList.toggle('on', caps[name]);
+  update();
+}
+
+function toggleHandler(name) {
+  handlers[name] = !handlers[name];
+  document.getElementById('htog_' + name).classList.toggle('on', handlers[name]);
+  document.getElementById('hbody_' + name).style.display = handlers[name] ? 'block' : 'none';
+  update();
+}
+
+function toggleStep(n) {
+  for (var i = 1; i <= 5; i++) {
+    document.getElementById('step' + i).classList.toggle('active', i === n);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────
+update();
+</script>
+</body>
+</html>
