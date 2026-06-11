@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UCP Negotiation Visualiser</title>
+<style>
+:root {
+  --blue: #1d4ed8; --blue-bg: #eff6ff; --blue-border: #bfdbfe;
+  --green: #16a34a; --green-bg: #f0fdf4; --green-border: #bbf7d0;
+  --amber: #b45309; --amber-bg: #fffbeb; --amber-border: #fde68a;
+  --red: #dc2626; --red-bg: #fef2f2; --red-border: #fecaca;
+  --gray: #6b7280; --gray-bg: #f9fafb; --gray-border: #e5e7eb;
+  --dark: #0f172a;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'SF Mono', 'Fira Code', Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: #f8fafc; color: #111; min-height: 100vh; padding-bottom: 60px; }
+
+.header { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); color: #fff; padding: 28px 32px; }
+.h-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.h-sub { font-size: 13px; color: #94a3b8; }
+
+.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+
+/* PRESETS */
+.preset-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.preset-label { font-size: 12px; font-weight: 600; color: var(--gray); }
+.preset-btn { padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid var(--gray-border); background: #fff; cursor: pointer; transition: all .15s; }
+.preset-btn:hover { border-color: var(--blue); color: var(--blue); }
+.preset-btn.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+/* EDITORS */
+.editors { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media(max-width:800px){ .editors { grid-template-columns: 1fr; } }
+.editor-card { background: #fff; border: 1px solid var(--gray-border); border-radius: 10px; overflow: hidden; }
+.editor-head { padding: 10px 14px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--gray-border); }
+.eh-agent { background: var(--blue-bg); color: var(--blue); }
+.eh-merchant { background: var(--green-bg); color: var(--green); }
+.editor-card textarea { width: 100%; border: none; outline: none; padding: 12px 14px; font-family: var(--mono); font-size: 11px; line-height: 1.7; min-height: 260px; resize: vertical; color: #1e293b; }
+.json-err { font-size: 11px; color: var(--red); padding: 6px 14px; background: var(--red-bg); display: none; }
+
+.run-btn { width: 100%; padding: 14px; background: var(--blue); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 24px; transition: background .15s; }
+.run-btn:hover { background: #1e40af; }
+
+/* RESULTS */
+.results { display: none; }
+.results.show { display: block; }
+
+.step-card { background: #fff; border: 1px solid var(--gray-border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+.step-head { padding: 12px 16px; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid var(--gray-border); }
+.step-badge { width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-title { font-size: 14px; font-weight: 700; }
+.step-sub { font-size: 11px; color: var(--gray); }
+.step-body { padding: 14px 16px; }
+
+/* INTERSECT TABLE */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gray); padding: 6px 10px; border-bottom: 1px solid var(--gray-border); }
+td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.cap-name { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.yn { font-size: 14px; text-align: center; }
+.verdict { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; display: inline-block; }
+.v-keep { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.v-drop { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+.v-prune { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.reason { font-size: 11px; color: var(--gray); }
+
+/* PRUNE PASSES */
+.pass-row { background: var(--gray-bg); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 12px; line-height: 1.7; }
+.pass-num { font-weight: 700; color: var(--blue); }
+.prune-chain { font-family: var(--mono); font-size: 11px; }
+.arrow { color: var(--gray); margin: 0 4px; }
+
+/* FINAL SET */
+.final-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.final-cap { background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green); border-radius: 8px; padding: 8px 14px; font-family: var(--mono); font-size: 11px; font-weight: 700; }
+.final-empty { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red); border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600; }
+
+/* THREE-COLUMN VENN-ish SUMMARY */
+.venn { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 12px; margin-bottom: 4px; }
+@media(max-width:800px){ .venn { grid-template-columns: 1fr; } }
+.venn-col { border-radius: 10px; padding: 12px; }
+.vc-agent { background: var(--blue-bg); border: 1px solid var(--blue-border); }
+.vc-final { background: var(--green-bg); border: 2px solid var(--green); }
+.vc-merchant { background: #f0fdf4; border: 1px solid var(--green-border); }
+.vc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.vc-agent .vc-title { color: var(--blue); }
+.vc-final .vc-title { color: var(--green); }
+.vc-merchant .vc-title { color: var(--green); }
+.vc-item { font-family: var(--mono); font-size: 10px; padding: 5px 8px; border-radius: 6px; margin-bottom: 4px; background: rgba(255,255,255,.7); }
+.vc-item.dead { opacity: .45; text-decoration: line-through; }
+.foot { font-size: 11px; color: var(--gray); text-align: center; margin-top: 20px; }
+.foot a { color: var(--blue); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-title">🔭 UCP Negotiation Visualiser</div>
+  <div class="h-sub">Paste two profiles. Watch intersect + prune happen exactly as the server runs it — Day 15 of the 90-day UCP build.</div>
+</div>
+
+<div class="wrap">
+  <div class="preset-bar">
+    <span class="preset-label">Scenarios:</span>
+    <button class="preset-btn on" onclick="loadPreset('perfect',this)">✅ Perfect match</button>
+    <button class="preset-btn" onclick="loadPreset('chain',this)">⛓️ Chained pruning</button>
+    <button class="preset-btn" onclick="loadPreset('orrule',this)">🎟️ Discount OR rule</button>
+    <button class="preset-btn" onclick="loadPreset('version',this)">🔢 Version mismatch</button>
+  </div>
+
+  <div class="editors">
+    <div class="editor-card">
+      <div class="editor-head eh-agent">🤖 AGENT profile (platform — e.g. Gemini)</div>
+      <textarea id="agent-json" oninput="clearErr('agent')"></textarea>
+      <div class="json-err" id="agent-err"></div>
+    </div>
+    <div class="editor-card">
+      <div class="editor-head eh-merchant">🏪 MERCHANT profile (your server)</div>
+      <textarea id="merchant-json" oninput="clearErr('merchant')"></textarea>
+      <div class="json-err" id="merchant-err"></div>
+    </div>
+  </div>
+
+  <button class="run-btn" onclick="runNegotiation()">▶ Run negotiation</button>
+
+  <div class="results" id="results">
+    <!-- VENN SUMMARY -->
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-badge" style="background:var(--green)">∩</div>
+        <div><div class="step-title">The picture</div><div class="step-sub">Faded + struck through = didn't make the final set</div></div>
+      </div>
+      <div class="step-body"><div class="venn" id="venn"></div></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-badge">1</div>
+        <div><div class="step-title">Intersect capabilities</div><div class="step-sub">Keep only what BOTH declare — at the highest shared version</div></div>
+      </div>
+      <div class="step-body">
+        <table>
+          <thead><tr><th>Capability</th><th style="text-align:center">Agent</th><th style="text-align:center">Merchant</th><th>Shared version</th><th>Verdict</th><th>Why</th></tr></thead>
+          <tbody id="intersect-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-badge">2</div>
+        <div><div class="step-title">Prune orphaned extensions</div><div class="step-sub">No child without a parent — loops until stable (chains can cascade)</div></div>
+      </div>
+      <div class="step-body" id="prune-body"></div>
+    </div>
+
+    <!-- FINAL -->
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-badge" style="background:var(--green)">✓</div>
+        <div><div class="step-title">Final active capability set</div><div class="step-sub">This is what the session can do — everything else is invisible to the agent</div></div>
+      </div>
+      <div class="step-body"><div class="final-grid" id="final-grid"></div></div>
+    </div>
+  </div>
+
+  <div class="foot">Mirrors <code>lib/negotiation.js</code> — intersectCapabilities() + pruneOrphanedExtensions() · Part of the <a href="https://github.com/ibmlachezar/UCP" target="_blank">UCP 90-day build</a></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// THE EXACT ALGORITHM FROM lib/negotiation.js
+// (same logic, browser JS)
+// ════════════════════════════════════════════════════════
+
+// Step 1 — intersect: both sides must declare it; pick highest shared version
+function intersectCapabilities(merchantCaps, platformCaps, trace) {
+  const result = {}
+  const allNames = new Set([...Object.keys(merchantCaps), ...Object.keys(platformCaps)])
+
+  for (const capName of allNames) {
+    const m = merchantCaps[capName]
+    const p = platformCaps[capName]
+    const row = { name: capName, inAgent: !!p, inMerchant: !!m, version: null, kept: false, reason: '' }
+
+    if (!m) { row.reason = 'Agent declares it, merchant doesn\\u2019t — nothing to serve'; trace.push(row); continue }
+    if (!p) { row.reason = 'Merchant declares it, agent doesn\\u2019t understand it'; trace.push(row); continue }
+
+    const pSet = new Set(p.map(v => v.version))
+    const shared = m.filter(v => pSet.has(v.version))
+    if (shared.length === 0) {
+      row.reason = 'Both declare it but NO shared version (' + m.map(v=>v.version).join(',') + ' vs ' + p.map(v=>v.version).join(',') + ')'
+      trace.push(row); continue
+    }
+    shared.sort((a, b) => b.version.localeCompare(a.version))
+    result[capName] = [shared[0]]
+    row.kept = true; row.version = shared[0].version
+    row.reason = shared.length > 1 ? 'Multiple shared versions — picked highest' : 'Declared by both at same version'
+    trace.push(row)
+  }
+  return result
+}
+
+// Step 2 — prune: multi-pass loop; multi-parent = OR rule (one survivor is enough)
+function pruneOrphanedExtensions(capabilities, passes) {
+  let changed = true
+  let passNum = 0
+  while (changed) {
+    changed = false
+    passNum++
+    const pass = { num: passNum, pruned: [], survived: [] }
+    for (const [capName, versions] of Object.entries(capabilities)) {
+      const ext = versions[0].extends
+      if (!ext) continue
+      const parents = Array.isArray(ext) ? ext : [ext]
+      const alive = parents.filter(par => capabilities[par])
+      if (alive.length === 0) {
+        delete capabilities[capName]
+        pass.pruned.push({ name: capName, parents })
+        changed = true
+      } else {
+        pass.survived.push({ name: capName, parents, alive })
+      }
+    }
+    if (pass.pruned.length > 0 || passNum === 1) passes.push(pass)
+  }
+  return capabilities
+}
+
+// ════════════════════════════════════════════════════════
+// UI
+// ════════════════════════════════════════════════════════
+const VER = '2026-04-08'
+function cap(version, extendsVal) { const o = { version }; if (extendsVal) o.extends = extendsVal; return o }
+function profile(caps) { return { ucp: { version: VER, capabilities: caps } } }
+
+const presets = {
+  perfect: {
+    agent: profile({
+      'dev.ucp.shopping.checkout':    [cap(VER)],
+      'dev.ucp.shopping.fulfillment': [cap(VER, 'dev.ucp.shopping.checkout')],
+      'dev.ucp.shopping.discount':    [cap(VER, ['dev.ucp.shopping.checkout','dev.ucp.shopping.cart'])],
+      'dev.ucp.shopping.catalog':     [cap(VER)]
+    }),
+    merchant: profile({
+      'dev.ucp.shopping.checkout':    [cap(VER)],
+      'dev.ucp.shopping.fulfillment': [cap(VER, 'dev.ucp.shopping.checkout')],
+      'dev.ucp.shopping.discount':    [cap(VER, ['dev.ucp.shopping.checkout','dev.ucp.shopping.cart'])],
+      'dev.ucp.shopping.catalog':     [cap(VER)]
+    })
+  },
+  chain: {
+    agent: profile({
+      // Agent does NOT support checkout → everything chained on it dies
+      'dev.ucp.shopping.fulfillment': [cap(VER, 'dev.ucp.shopping.checkout')],
+      'dev.ucp.shopping.loyalty':     [cap(VER, 'dev.ucp.shopping.fulfillment')],
+      'dev.ucp.shopping.catalog':     [cap(VER)]
+    }),
+    merchant: profile({
+      'dev.ucp.shopping.checkout':    [cap(VER)],
+      'dev.ucp.shopping.fulfillment': [cap(VER, 'dev.ucp.shopping.checkout')],
+      'dev.ucp.shopping.loyalty':     [cap(VER, 'dev.ucp.shopping.fulfillment')],
+      'dev.ucp.shopping.catalog':     [cap(VER)]
+    })
+  },
+  orrule: {
+    agent: profile({
+      // Agent supports checkout but NOT cart → discount survives via ONE parent
+      'dev.ucp.shopping.checkout': [cap(VER)],
+      'dev.ucp.shopping.discount': [cap(VER, ['dev.ucp.shopping.checkout','dev.ucp.shopping.cart'])]
+    }),
+    merchant: profile({
+      'dev.ucp.shopping.checkout': [cap(VER)],
+      'dev.ucp.shopping.cart':     [cap(VER)],
+      'dev.ucp.shopping.discount': [cap(VER, ['dev.ucp.shopping.checkout','dev.ucp.shopping.cart'])]
+    })
+  },
+  version: {
+    agent: profile({
+      'dev.ucp.shopping.checkout': [cap('2025-10-01'), cap(VER)],
+      'dev.ucp.shopping.catalog':  [cap('2025-10-01')]
+    }),
+    merchant: profile({
+      'dev.ucp.shopping.checkout': [cap(VER)],
+      'dev.ucp.shopping.catalog':  [cap(VER)]
+    })
+  }
+}
+
+function loadPreset(name, btn) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('on'))
+  if (btn) btn.classList.add('on')
+  document.getElementById('agent-json').value = JSON.stringify(presets[name].agent, null, 2)
+  document.getElementById('merchant-json').value = JSON.stringify(presets[name].merchant, null, 2)
+  document.getElementById('results').classList.remove('show')
+}
+
+function clearErr(which) { document.getElementById(which + '-err').style.display = 'none' }
+function showErr(which, msg) {
+  const el = document.getElementById(which + '-err')
+  el.textContent = '⚠️ ' + msg
+  el.style.display = 'block'
+}
+
+function parsePanel(which) {
+  try {
+    const obj = JSON.parse(document.getElementById(which + '-json').value)
+    const caps = obj.ucp && obj.ucp.capabilities ? obj.ucp.capabilities : obj.capabilities ? obj.capabilities : obj
+    if (typeof caps !== 'object') throw new Error('No capabilities object found')
+    return caps
+  } catch (e) { showErr(which, e.message); return null }
+}
+
+function shortName(full) { return full.replace('dev.ucp.shopping.', '') }
+
+function runNegotiation() {
+  const agentCaps = parsePanel('agent')
+  const merchantCaps = parsePanel('merchant')
+  if (!agentCaps || !merchantCaps) return
+
+  // STEP 1
+  const trace = []
+  const intersected = intersectCapabilities(merchantCaps, agentCaps, trace)
+
+  // STEP 2 — work on a copy so we can show before/after
+  const beforePrune = JSON.parse(JSON.stringify(intersected))
+  const passes = []
+  const final = pruneOrphanedExtensions(intersected, passes)
+
+  // RENDER step 1 table
+  trace.sort((a,b) => (b.kept - a.kept) || a.name.localeCompare(b.name))
+  document.getElementById('intersect-table').innerHTML = trace.map(r =>
+    '<tr>' +
+    '<td class="cap-name">' + shortName(r.name) + '</td>' +
+    '<td class="yn">' + (r.inAgent ? '✅' : '—') + '</td>' +
+    '<td class="yn">' + (r.inMerchant ? '✅' : '—') + '</td>' +
+    '<td class="cap-name">' + (r.version || '—') + '</td>' +
+    '<td><span class="verdict ' + (r.kept ? 'v-keep' : 'v-drop') + '">' + (r.kept ? 'KEEP' : 'DROP') + '</span></td>' +
+    '<td class="reason">' + r.reason + '</td>' +
+    '</tr>'
+  ).join('')
+
+  // RENDER step 2 passes
+  let pruneHtml = ''
+  const anyPruned = passes.some(p => p.pruned.length > 0)
+  passes.forEach(p => {
+    if (p.pruned.length === 0 && p.num === 1 && !anyPruned) {
+      pruneHtml += '<div class="pass-row"><span class="pass-num">Pass 1:</span> every extension found at least one living parent — nothing to prune. ' +
+        p.survived.map(s => '<div class="prune-chain" style="margin-top:4px">✅ ' + shortName(s.name) + ' <span class="arrow">→ parent alive:</span> ' + s.alive.map(shortName).join(' / ') + '</div>').join('') +
+        '</div>'
+    } else if (p.pruned.length > 0) {
+      pruneHtml += '<div class="pass-row"><span class="pass-num">Pass ' + p.num + ':</span> ' +
+        p.pruned.map(x =>
+          '<div class="prune-chain" style="margin-top:4px"><span class="verdict v-prune">PRUNED</span> ' + shortName(x.name) +
+          ' <span class="arrow">— needed:</span> ' + x.parents.map(shortName).join(' OR ') + ' <span class="arrow">— none survived intersection</span></div>'
+        ).join('') + '</div>'
+    } else {
+      pruneHtml += '<div class="pass-row"><span class="pass-num">Pass ' + p.num + ':</span> stable — nothing changed, loop exits.</div>'
+    }
+  })
+  if (anyPruned) pruneHtml += '<div class="pass-row" style="background:var(--amber-bg);color:var(--amber)">💡 Pruning needed ' + passes.length + ' pass(es). Chains cascade: removing one parent can orphan a grandchild on the NEXT pass — that\\u2019s why it\\u2019s a while-loop, not a single sweep.</div>'
+  document.getElementById('prune-body').innerHTML = pruneHtml
+
+  // RENDER final set
+  const finalNames = Object.keys(final)
+  document.getElementById('final-grid').innerHTML = finalNames.length
+    ? finalNames.map(n => '<div class="final-cap">✓ ' + shortName(n) + ' <span style="opacity:.6;font-weight:400">' + final[n][0].version + '</span></div>').join('')
+    : '<div class="final-empty">∅ Empty set — this agent and merchant cannot transact at all</div>'
+
+  // RENDER venn
+  const inFinal = n => !!final[n]
+  const col = (caps, title, cls) => '<div class="venn-col ' + cls + '"><div class="vc-title">' + title + '</div>' +
+    Object.keys(caps).map(n => '<div class="vc-item' + (inFinal(n) ? '' : ' dead') + '">' + shortName(n) + '</div>').join('') + '</div>'
+  document.getElementById('venn').innerHTML =
+    col(agentCaps, '🤖 Agent declares (' + Object.keys(agentCaps).length + ')', 'vc-agent') +
+    '<div class="venn-col vc-final"><div class="vc-title">∩ NEGOTIATED (' + finalNames.length + ')</div>' +
+      (finalNames.length ? finalNames.map(n => '<div class="vc-item">' + shortName(n) + '</div>').join('') : '<div class="vc-item" style="color:var(--red)">empty</div>') + '</div>' +
+    col(merchantCaps, '🏪 Merchant declares (' + Object.keys(merchantCaps).length + ')', 'vc-merchant')
+
+  document.getElementById('results').classList.add('show')
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+loadPreset('perfect', document.querySelector('.preset-btn'))
+</script>
+</body>
+</html>
